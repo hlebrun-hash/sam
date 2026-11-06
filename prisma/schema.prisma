@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Hospital {
+  id              String          @id @default(cuid())
+  name            String
+  type            String          @default("CH")
+  city            String
+  address         String?
+  phone           String?
+  bedCount        Int             @default(0)
+  pricePerBed     Float           @default(5.0)
+  lat             Float?
+  lng             Float?
+  staff           Staff[]
+  visits          Visit[]
+  auditLogs       AuditLog[]
+  triageRequests  TriageRequest[]
+  createdAt       DateTime        @default(now())
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  franceConnectSub String? @unique   // identifiant FranceConnect (sub) si connecté via l'État
+  role         String     // Role enum stored as string
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  patient      Patient?
+  staff        Staff?
+  auditLogs    AuditLog[]
+}
+
+model Patient {
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName          String
+  lastName           String
+  birthDate          DateTime
+  birthCity          String
+  photoUrl           String?
+  qrCode             String          @unique
+  patientNumber      Int?            @unique
+  bloodGroup         String?
+  gender             String?         // HOMME | FEMME | AUTRE
+  height             Int?            // cm
+  weight             Float?          // kg
+  phone              String?
+  profession         String?
+  smoker             String?         // NON | EX | OUI
+  alcoholUse         String?         // JAMAIS | OCCASIONNEL | REGULIER
+  vaccinesUpToDate   String?         // OUI | NON | PARTIEL | INCONNU
+  // Identité administrative
+  usageName          String?         // nom d'usage (si différent du nom de naissance)
+  birthPostalCode    String?         // code postal / INSEE du lieu de naissance
+  address            String?
+  postalCode         String?
+  city               String?
+  landlinePhone      String?
+  idDocumentType     String?         // CNI | PASSEPORT | TITRE_SEJOUR
+  employer           String?
+  legalStatus        String?         // MAJEUR | MINEUR | TUTELLE
+  legalRepName       String?         // parent / tuteur
+  legalRepPhone      String?
+  // Assurance maladie & mutuelle
+  socialSecurityNumber String?
+  healthFund           String?       // caisse d'assurance maladie
+  coverageType         String?       // STANDARD | CMU | AME | ALD | AUCUNE
+  coverageEndDate      DateTime?
+  mutuelleName         String?
+  mutuelleNumber       String?
+  mutuelleEndDate      DateTime?
+  insuredName          String?       // assuré principal, si ce n'est pas le patient
+  insuredAddress       String?
+  validatedAt        DateTime?
+  validatedBy        String?
+  validatedByStaffId String?
+  identityVerified   Boolean         @default(false)  // identité vérifiée par un service de l'État
+  identityProvider   String?         // ex : FranceConnect
+  identityVerifiedAt DateTime?
+  onboardedAt        DateTime?
+  record             MedicalRecord?
+  visits             Visit[]
+  recordVersions     RecordVersion[]
+  auditLogs          AuditLog[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model MedicalRecord {
+  id               String            @id @default(cuid())
+  patientId        String            @unique
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allergies        Allergy[]
+  medications      Medication[]
+  medicalHistories MedicalHistory[]
+  emergencyContact EmergencyContact?
+  treatingDoctor   String?
+  treatingDoctorPhone String?
+  advanceDirectives String?          // OUI | NON
+  trustedPerson    TrustedPerson?
+  notes            String?
+  updatedAt        DateTime          @updatedAt
+}
+
+model Allergy {
+  id       String @id @default(cuid())
+  recordId String
+  record   MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  name     String
+  severity String // AllergySeverity: LEGERE | MODEREE | GRAVE | ANAPHYLAXIE
+  reaction String?
+}
+
+model Medication {
+  id        String        @id @default(cuid())
+  recordId  String
+  record    MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  name      String
+  dosage    String?
+  frequency String?
+  since     DateTime?
+}
+
+model MedicalHistory {
+  id          String        @id @default(cuid())
+  recordId    String
+  record      MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  condition   String
+  diagnosedAt DateTime?
+  notes       String?
+}
+
+model EmergencyContact {
+  id           String        @id @default(cuid())
+  recordId     String        @unique
+  record       MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+  relationship String
+  phone        String
+  email        String?
+  address      String?
+}
+
+// Personne de confiance (désignation facultative, distincte de la personne à prévenir)
+model TrustedPerson {
+  id           String        @id @default(cuid())
+  recordId     String        @unique
+  record       MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+  relationship String
+  phone        String
+  email        String?
+  address      String?
+}
+
+model RecordVersion {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  snapshot  String   // JSON serialized
+  changedBy String
+  createdAt DateTime @default(now())
+}
+
+model Staff {
+  id         String     @id @default(cuid())
+  userId     String     @unique
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospitalId String
+  hospital   Hospital   @relation(fields: [hospitalId], references: [id])
+  firstName  String
+  lastName   String
+  specialty  String?
+  active     Boolean    @default(true)
+  auditLogs  AuditLog[]
+}
+
+model Visit {
+  id                String    @id @default(cuid())
+  patientId         String
+  patient           Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  hospitalId        String
+  hospital          Hospital  @relation(fields: [hospitalId], references: [id])
+  date              DateTime  @default(now())
+  reason            String
+  notes             String?
+  staffId           String?
+  admissionDetails  String?   // JSON: structured form data from patient
+  iaoValidatedAt    DateTime?
+  iaoValidatedBy    String?
+  iaoCorrections    String?   // JSON: {verifiedFields: string[], corrections: Record<string,string>}
+  iaoNotes          String?   // JSON: [{text, isPrivate, createdAt, createdBy}]
+}
+
+model TriageRequest {
+  id             String   @id @default(cuid())
+  qrCode         String   @unique
+  chiefComplaint String
+  urgencyLevel   String   @default("MODEREE")
+  firstName      String?
+  lastName       String?
+  birthYear      Int?
+  phone          String?
+  hospitalId     String
+  hospital       Hospital @relation(fields: [hospitalId], references: [id])
+  handledAt      DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  staffId     String?
+  staff       Staff?    @relation(fields: [staffId], references: [id])
+  patientId   String?
+  patient     Patient?  @relation(fields: [patientId], references: [id])
+  hospitalId  String?
+  hospital    Hospital? @relation(fields: [hospitalId], references: [id])
+  action      String    // AuditAction enum as string
+  details     String?
+  isEmergency Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
