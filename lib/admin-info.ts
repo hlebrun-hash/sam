@@ -100,7 +100,6 @@ export const adminContact = (a: Partial<AdminInfo>) => person(a, "ec")
 export const adminTrusted = (a: Partial<AdminInfo>) => person(a, "tp")
 
 /** Valeurs initiales pour les formulaires, depuis un patient + dossier chargés. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function adminFromPatient(p: any): AdminInfo {
   const a = emptyAdmin()
   const iso = (v: unknown) => (v ? new Date(v as string).toISOString().split("T")[0] : "")

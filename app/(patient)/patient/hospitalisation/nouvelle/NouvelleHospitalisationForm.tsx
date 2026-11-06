@@ -334,7 +334,7 @@ export default function NouvelleHospitalisationForm({ hospitals, patient }: Prop
         </div>
         {patient.record?.emergencyContact && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-            <div className="text-xs text-orange-500 uppercase tracking-wide mb-1">Contact d'urgence</div>
+            <div className="text-xs text-orange-500 uppercase tracking-wide mb-1">Contact d&apos;urgence</div>
             <div className="text-sm font-medium text-orange-900">
               {patient.record.emergencyContact.firstName} {patient.record.emergencyContact.lastName}{" "}
               <span className="font-normal text-orange-700">({patient.record.emergencyContact.relationship})</span>
@@ -453,7 +453,7 @@ export default function NouvelleHospitalisationForm({ hospitals, patient }: Prop
         </div>
 
         <div>
-          <label className="label">Type d'admission *</label>
+          <label className="label">Type d&apos;admission *</label>
           <div className="space-y-3">
             {ADMISSION_TYPES.map(group => (
               <div key={group.category}>

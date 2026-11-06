@@ -85,8 +85,14 @@ export default function QrScanner() {
 
   // Stop camera when switching away from camera tab
   useEffect(() => {
-    if (tab !== "camera" && scanning) stopCamera()
-  }, [tab])
+    if (tab !== "camera" && scanning) {
+      if (html5QrRef.current) {
+        (html5QrRef.current as { stop: () => Promise<void> }).stop().catch(() => undefined)
+        html5QrRef.current = null
+      }
+      setScanning(false)
+    }
+  }, [tab, scanning])
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "camera",  label: "Caméra",        icon: "📷" },
